@@ -1,7 +1,41 @@
 #!/bin/bash
 
+set -e
+
 echo "🚀 Bienvenido al instalador de n8n con Docker + SSL automático (Let's Encrypt)"
-echo "🌐 Vamos a configurar tu entorno paso a paso. Asegúrate de tener Docker y Docker Compose instalados."
+echo "🌐 Primero, actualizaremos el sistema e instalaremos Docker y Docker Compose..."
+
+# Actualizar sistema e instalar Docker si no está instalado
+if ! command -v docker &> /dev/null; then
+  echo "🛠 Docker no está instalado. Procediendo con la instalación..."
+
+  sudo apt-get update -y
+  sudo apt-get upgrade -y
+
+  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  sudo apt-get update -y
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  echo "Agregando usuario actual al grupo docker para evitar usar sudo..."
+  sudo usermod -aG docker $USER
+
+  echo "Docker y Docker Compose instalados. Es recomendable cerrar sesión y volver a entrar para aplicar permisos."
+else
+  echo "✅ Docker ya está instalado. Continuando..."
+fi
+
+# Validar Docker Compose instalado
+if ! docker compose version &> /dev/null; then
+  echo "❌ Docker Compose no está instalado. Por favor, instala docker-compose o docker compose."
+  exit 1
+fi
+
+echo "🌐 Vamos a configurar tu entorno paso a paso. Responde las siguientes preguntas:"
 
 # Preguntas al usuario
 read -p "🟡 ¿Qué dominio o subdominio quieres usar para n8n (ej: n8n.tudominio.com)? " DOMAIN
@@ -194,6 +228,6 @@ EOF
 
 echo "✅ docker-compose.yml generado correctamente."
 echo "🔁 Levantando servicios..."
-docker-compose up -d
+docker compose up -d
 
 echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
