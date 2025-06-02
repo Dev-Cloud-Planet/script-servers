@@ -34,11 +34,9 @@ else
   echo "👤 Agregando tu usuario al grupo 'docker'..."
   sudo usermod -aG docker $USER
 
-  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
+  echo "⚠️ Reinicia tu sesión para a  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
   echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
-fi
-
-echo "🔍 Verificando que Docker Compose esté disponible..."
+ompose esté disponible..."
 
 if command -v docker-compose &> /dev/null; then
   echo "✅ docker-compose (clásico) está instalado."
