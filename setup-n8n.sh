@@ -1,22 +1,23 @@
 #!/bin/bash
 
-set -e
+set -euo pipefail
 
-# Solicita la contraseña sudo al principio para que no la pida varias veces
+# Solicita la contraseña sudo al principio para evitar múltiples prompts
 sudo -v
 
-# Mantener sudo activo hasta que termine el script
-while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+# Mantiene sudo activo mientras corre el script
+( while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done ) 2>/dev/null &
 
 echo "🚀 Bienvenido al instalador de n8n con Docker + SSL automático (Let's Encrypt)"
+echo "🌐 Actualizando tu sistema..."
 
-echo "🌐 Primero actualizaremos tu sistema para que todo esté al día..."
-sudo apt-get update -y
-sudo apt-get upgrade -y
+sudo apt-get update -y && sudo apt-get upgrade -y
 
 echo "🔍 Ahora vamos a verificar si Docker está instalado..."
 
-if ! command -v docker &> /dev/null; then
+if command -v docker &> /dev/null && docker --version &> /dev/null; then
+  echo "✅ Docker ya está instalado. Saltando instalación..."
+else
   echo "🛠 Docker no está instalado. Procediendo con la instalación..."
 
   sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
@@ -28,16 +29,13 @@ if ! command -v docker &> /dev/null; then
   sudo apt-get update -y
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-  echo "✅ Docker y Docker Compose instalados correctamente."
+  echo "✅ Docker instalado correctamente."
 
   echo "👤 Agregando tu usuario al grupo 'docker' para evitar usar sudo con Docker..."
   sudo usermod -aG docker $USER
 
   echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
   echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
-
-else
-  echo "✅ Docker ya está instalado. Continuando..."
 fi
 
 echo "🔍 Verificando que Docker Compose esté disponible..."
@@ -47,25 +45,33 @@ if command -v docker-compose &> /dev/null; then
 elif docker compose version &> /dev/null; then
   echo "✅ docker compose (el nuevo) está disponible."
 else
-  echo "❌ Docker Compose no está instalado. Por favor, instala docker-compose o docker compose."
-  exit 1
+  echo "❌ Docker Compose no está instalado. Procediendo a instalarlo..."
+
+  sudo apt-get install -y docker-compose-plugin
+
+  if docker compose version &> /dev/null; then
+    echo "✅ docker compose (plugin) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar Docker Compose. Abortando..."
+    exit 1
+  fi
 fi
 
-echo "🌐 Vamos a configurar tu entorno paso a paso. Responde las siguientes preguntas:"
+echo "📝 Configuraremos tu entorno. Responde lo siguiente:"
 
 # Preguntas al usuario
-read -p "🟡 ¿Qué dominio o subdominio quieres usar para n8n (ej: n8n.tudominio.com)? " DOMAIN
-read -p "📧 Correo para Let's Encrypt (certificados SSL): " EMAIL
-read -p "🌍 Zona horaria del sistema (ej: America/Mexico_City): " TZ
-read -p "🔐 Contraseña para PostgreSQL (usuario postgres): " POSTGRES_PASSWORD
-read -p "👤 Usuario para acceso a n8n: " N8N_BASIC_AUTH_USER
-read -p "🔑 Contraseña para acceso a n8n: " N8N_BASIC_AUTH_PASSWORD
-read -p "🧪 Clave secreta para cifrar datos en n8n (N8N_ENCRYPTION_KEY): " N8N_ENCRYPTION_KEY
-read -p "🔁 ¿Cuántos workers de n8n quieres usar? (1-5): " N8N_WORKERS
+read -rp "🟡 Dominio para n8n (ej: n8n.tudominio.com): " DOMAIN
+read -rp "📧 Correo para Let's Encrypt: " EMAIL
+read -rp "🌍 Zona horaria del sistema (ej: America/Mexico_City): " TZ
+read -rsp "🔐 Contraseña para PostgreSQL: " POSTGRES_PASSWORD; echo
+read -rp "👤 Usuario para acceso a n8n: " N8N_BASIC_AUTH_USER
+read -rsp "🔑 Contraseña para n8n: " N8N_BASIC_AUTH_PASSWORD; echo
+read -rsp "🧪 Clave secreta para cifrado en n8n: " N8N_ENCRYPTION_KEY; echo
+read -rp "🔁 ¿Cuántos workers de n8n quieres usar? (1-5): " N8N_WORKERS
 
-# Validación básica de workers
+# Validación
 if ! [[ "$N8N_WORKERS" =~ ^[1-5]$ ]]; then
-  echo "❌ Número inválido. Debes elegir entre 1 y 5 workers."
+  echo "❌ Número inválido de workers. Debes elegir entre 1 y 5."
   exit 1
 fi
 
@@ -81,9 +87,9 @@ N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 N8N_WORKERS=$N8N_WORKERS
 EOF
 
-echo "✅ Archivo .env generado correctamente."
+echo "✅ Archivo .env generado."
 
-# Crear docker-compose.yml
+# Generar docker-compose.yml base
 cat > docker-compose.yml <<'EOF'
 version: "3.8"
 
@@ -143,11 +149,11 @@ services:
     environment:
       - REDIS_HOSTS=local:redis:6379
       - TZ=${TZ}
+    expose:
+      - "8081"
     labels:
       - "traefik.enable=false"
       - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
-    expose:
-      - "8081"
     networks:
       - backend
       - proxy
@@ -158,11 +164,11 @@ services:
     environment:
       - PGADMIN_DEFAULT_EMAIL=${EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${POSTGRES_PASSWORD}
+    expose:
+      - "80"
     labels:
       - "traefik.enable=false"
       - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
-    expose:
-      - "80"
     networks:
       - backend
       - proxy
@@ -197,11 +203,10 @@ services:
     networks:
       - backend
       - proxy
-
 EOF
 
-# Agregar workers dinámicamente
-for i in $(seq 1 $N8N_WORKERS); do
+# Agrega workers dinámicamente
+for i in $(seq 1 "$N8N_WORKERS"); do
 cat >> docker-compose.yml <<EOF
 
   n8n-worker-$i:
@@ -227,12 +232,12 @@ cat >> docker-compose.yml <<EOF
           memory: 512M
     networks:
       - backend
-
 EOF
 done
 
-# Agregar redes y volúmenes
+# Agrega volúmenes y redes
 cat >> docker-compose.yml <<EOF
+
 volumes:
   postgres_data:
   n8n_data:
@@ -243,8 +248,8 @@ networks:
 EOF
 
 echo "✅ docker-compose.yml generado correctamente."
-echo "🔁 Levantando servicios..."
+echo "🔁 Iniciando contenedores..."
 
 docker compose up -d
 
-echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
+echo "🎉 ¡Listo! Tu instancia de n8n está disponible en: https://${DOMAIN}"
