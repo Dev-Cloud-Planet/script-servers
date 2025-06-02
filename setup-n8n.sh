@@ -2,7 +2,9 @@
 
 set -e
 
+echo "🚀 Bienvenido al instalador de n8n con Docker + SSL automático (Let's Encrypt)"
 
+echo "🌐 Primero actualizaremos tu sistema para que todo esté al día..."
 sudo apt-get update -y
 sudo apt-get upgrade -y
 
