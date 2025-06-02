@@ -13,7 +13,7 @@ echo "🌐 Actualizando tu sistema..."
 
 sudo apt-get update -y && sudo apt-get upgrade -y
 
-echo "🔍 Ahora vamos a verificar si Docker está instalado..."
+echo "🔍 Verificando si Docker está instalado..."
 
 if command -v docker &> /dev/null && docker --version &> /dev/null; then
   echo "✅ Docker ya está instalado. Saltando instalación..."
@@ -31,19 +31,18 @@ else
 
   echo "✅ Docker instalado correctamente."
 
-  echo "👤 Agregando tu usuario al grupo 'docker' para evitar usar sudo con Docker..."
+  echo "👤 Agregando tu usuario al grupo 'docker'..."
   sudo usermod -aG docker $USER
 
-  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
-  echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
+  echo "⚠️ Reinicia tu sesión para aplicar los permisos del grupo 'docker'."
 fi
 
 echo "🔍 Verificando que Docker Compose esté disponible..."
 
 if command -v docker-compose &> /dev/null; then
-  echo "✅ docker-compose (el clásico) está instalado."
+  echo "✅ docker-compose (clásico) está instalado."
 elif docker compose version &> /dev/null; then
-  echo "✅ docker compose (el nuevo) está disponible."
+  echo "✅ docker compose (nuevo plugin) está disponible."
 else
   echo "❌ Docker Compose no está instalado. Procediendo a instalarlo..."
 
@@ -75,8 +74,19 @@ if ! [[ "$N8N_WORKERS" =~ ^[1-5]$ ]]; then
   exit 1
 fi
 
-# Crear archivo .env
-cat > .env <<EOF
+# Verificar permisos antes de crear .env
+if [ -f .env ]; then
+  echo "⚠️ El archivo .env ya existe. ¿Deseas sobrescribirlo? (s/n)"
+  read -r confirm
+  if [[ "$confirm" != "s" ]]; then
+    echo "❌ Operación cancelada por el usuario."
+    exit 1
+  fi
+fi
+
+# Crear archivo .env de forma segura
+echo "🔧 Generando archivo .env..."
+cat <<EOF > .env
 DOMAIN=$DOMAIN
 EMAIL=$EMAIL
 TZ=$TZ
@@ -87,10 +97,12 @@ N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 N8N_WORKERS=$N8N_WORKERS
 EOF
 
-echo "✅ Archivo .env generado."
+echo "✅ Archivo .env generado correctamente."
 
-# Generar docker-compose.yml base
-cat > docker-compose.yml <<'EOF'
+# Crear docker-compose.yml base
+echo "📦 Generando archivo docker-compose.yml..."
+
+cat > docker-compose.yml <<EOF
 version: "3.8"
 
 services:
@@ -205,7 +217,7 @@ services:
       - proxy
 EOF
 
-# Agrega workers dinámicamente
+# Añadir workers dinámicamente
 for i in $(seq 1 "$N8N_WORKERS"); do
 cat >> docker-compose.yml <<EOF
 
@@ -235,7 +247,7 @@ cat >> docker-compose.yml <<EOF
 EOF
 done
 
-# Agrega volúmenes y redes
+# Volúmenes y redes
 cat >> docker-compose.yml <<EOF
 
 volumes:
@@ -248,8 +260,9 @@ networks:
 EOF
 
 echo "✅ docker-compose.yml generado correctamente."
-echo "🔁 Iniciando contenedores..."
+echo "📦 Iniciando contenedores..."
 
 docker compose up -d
 
-echo "🎉 ¡Listo! Tu instancia de n8n está disponible en: https://${DOMAIN}"
+echo "🎉 ¡Todo listo! Accede a tu instancia de n8n en: https://${DOMAIN}"
+
