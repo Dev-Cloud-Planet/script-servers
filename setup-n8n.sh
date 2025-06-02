@@ -1,4 +1,4 @@
-#!/bin/bashMore actions
+#!/bin/bash
 
 set -euo pipefail
 
@@ -34,11 +34,9 @@ else
   echo "👤 Agregando tu usuario al grupo 'docker'..."
   sudo usermod -aG docker $USER
 
-  echo "⚠️ Reinicia tu sesión para a  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
+  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
   echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
-ompose esté disponible..."
-
-
+fi
 
 if command -v docker-compose &> /dev/null; then
   echo "✅ docker-compose (clásico) está instalado."
@@ -67,12 +65,18 @@ read -rsp "🔐 Contraseña para PostgreSQL: " POSTGRES_PASSWORD; echo
 read -rp "👤 Usuario para acceso a n8n: " N8N_BASIC_AUTH_USER
 read -rsp "🔑 Contraseña para n8n: " N8N_BASIC_AUTH_PASSWORD; echo
 read -rsp "🧪 Clave secreta para cifrado en n8n: " N8N_ENCRYPTION_KEY; echo
-read -rp "🔁 ¿Cuántos workers de n8n quieres usar? (1-5): " N8N_WORKERS
 
-# Validación
-if ! [[ "$N8N_WORKERS" =~ ^[1-5]$ ]]; then
-  echo "❌ Número inválido de workers. Debes elegir entre 1 y 5."
-  exit 1
+# Preguntar si quiere añadir workers
+read -rp "🔁 ¿Quieres añadir workers para n8n? (s/n): " add_workers
+
+if [[ "$add_workers" =~ ^[sS]$ ]]; then
+  read -rp "🧪 ¿Cuántos workers quieres usar? (1-5): " N8N_WORKERS
+  if ! [[ "$N8N_WORKERS" =~ ^[1-5]$ ]]; then
+    echo "❌ Número inválido de workers. Debes elegir entre 1 y 5."
+    exit 1
+  fi
+else
+  N8N_WORKERS=0
 fi
 
 # Verificar permisos antes de crear .env
@@ -103,8 +107,7 @@ echo "✅ Archivo .env generado correctamente."
 # Crear docker-compose.yml base
 echo "📦 Generando archivo docker-compose.yml..."
 
-tee docker-compose.yml > /dev/null <<'EOF'
-
+tee docker-compose.yml > /dev/null <<EOF
 services:
   nginx-proxy:
     image: jwilder/nginx-proxy
@@ -215,18 +218,20 @@ services:
     networks:
       - backend
       - proxy
-  volumes:
-    postgres_data:
-    n8n_data:
 
-  networks:
-    proxy:
-    backend:
+volumes:
+  postgres_data:
+  n8n_data:
+
+networks:
+  proxy:
+  backend:
 EOF
 
-# Añadir workers dinámicamente
-for i in $(seq 1 "$N8N_WORKERS"); do
-tee -a docker-compose.yml > /dev/null <<EOF
+# Añadir workers dinámicamente sólo si N8N_WORKERS > 0
+if (( N8N_WORKERS > 0 )); then
+  for i in $(seq 1 "$N8N_WORKERS"); do
+    tee -a docker-compose.yml > /dev/null <<EOF
 
   n8n-worker-$i:
     image: n8nio/n8n:latest
@@ -252,11 +257,8 @@ tee -a docker-compose.yml > /dev/null <<EOF
     networks:
       - backend
 EOF
-done
+  done
+fi
 
-echo "✅ docker-compose.yml + workers generado correctamente."
-echo "📦 Iniciando contenedores..."
-
-docker compose up -d
-
-echo "🎉 ¡Todo listo! Accede a tu instancia de n8n en: https://${DOMAIN}"
+echo "✅ docker-compose.yml generado correctamente."
+echo "🚀 Listo para levantar los contenedores con: docker compose up -d"
