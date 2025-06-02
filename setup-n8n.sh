@@ -104,18 +104,17 @@ EOF"
 
 echo "✅ Archivo .env generado correctamente."
 
+# Crear docker-compose.yml base
+echo "📦 Generando archivo docker-compose.yml..."
 
-
-echo "🔄 Generando archivo docker-compose.yml..."
-
-sudo tee docker-compose.yml > /dev/null <<EOF
+sudo bash -c "cat > docker-compose.yml <<EOF
 services:
   nginx-proxy:
     image: jwilder/nginx-proxy
     container_name: nginx-proxy
     ports:
-      - "80:80"
-      - "443:443"
+      - \"80:80\"
+      - \"443:443\"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./data/certs:/etc/nginx/certs:ro
@@ -166,10 +165,10 @@ services:
       - REDIS_HOSTS=local:redis:6379
       - TZ=${TZ}
     expose:
-      - "8081"
+      - \"8081\"
     labels:
-      - "traefik.enable=false"
-      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
+      - \"traefik.enable=false\"
+      - \"com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false\"
     networks:
       - backend
       - proxy
@@ -181,10 +180,10 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${POSTGRES_PASSWORD}
     expose:
-      - "80"
+      - \"80\"
     labels:
-      - "traefik.enable=false"
-      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
+      - \"traefik.enable=false\"
+      - \"com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false\"
     networks:
       - backend
       - proxy
@@ -227,13 +226,11 @@ volumes:
 networks:
   proxy:
   backend:
-EOF
+EOF"
 
-# Si quieres workers, agrega aquí después (ejemplo con 2 workers):
-N8N_WORKERS=2
 if (( N8N_WORKERS > 0 )); then
   for i in $(seq 1 "$N8N_WORKERS"); do
-    sudo tee -a docker-compose.yml > /dev/null <<EOF
+    sudo bash -c "cat >> docker-compose.yml <<EOF
 
   n8n-worker-$i:
     image: n8nio/n8n:latest
@@ -258,9 +255,9 @@ if (( N8N_WORKERS > 0 )); then
           memory: 512M
     networks:
       - backend
-EOF
+EOF"
   done
 fi
 
 echo "✅ docker-compose.yml generado correctamente."
-echo "🚀 Levanta con: docker compose up -d"
+echo "🚀 Listo para levantar los contenedores con: docker compose up -d"
