@@ -219,13 +219,13 @@ services:
       - backend
       - proxy
 
-volumes:
-  postgres_data:
-  n8n_data:
+  volumes:
+    postgres_data:
+    n8n_data:
 
-networks:
-  proxy:
-  backend:
+  networks:
+    proxy:
+    backend:
 EOF
 
 # Añadir workers dinámicamente sólo si N8N_WORKERS > 0
