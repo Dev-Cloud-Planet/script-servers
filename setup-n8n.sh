@@ -91,7 +91,7 @@ fi
 
 # Crear archivo .env de forma segura
 echo "🔧 Generando archivo .env..."
-cat <<EOF | sudo tee .env > /dev/null
+sudo bash -c "cat > .env <<EOF
 DOMAIN=$DOMAIN
 EMAIL=$EMAIL
 TZ=$TZ
@@ -100,7 +100,7 @@ N8N_BASIC_AUTH_USER=$N8N_BASIC_AUTH_USER
 N8N_BASIC_AUTH_PASSWORD=$N8N_BASIC_AUTH_PASSWORD
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 N8N_WORKERS=$N8N_WORKERS
-EOF
+EOF"
 
 echo "✅ Archivo .env generado correctamente."
 
