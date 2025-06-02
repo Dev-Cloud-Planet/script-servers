@@ -2,6 +2,12 @@
 
 set -e
 
+# Solicita la contraseña sudo al principio para que no la pida varias veces
+sudo -v
+
+# Mantener sudo activo hasta que termine el script
+while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done 2>/dev/null &
+
 echo "🚀 Bienvenido al instalador de n8n con Docker + SSL automático (Let's Encrypt)"
 
 echo "🌐 Primero actualizaremos tu sistema para que todo esté al día..."
