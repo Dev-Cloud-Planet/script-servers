@@ -260,4 +260,7 @@ EOF"
 fi
 
 echo "✅ docker-compose.yml generado correctamente."
-echo "🚀 Listo para levantar los contenedores con: docker compose up -d"
+echo "🔁 Levantando servicios..."
+docker-compose up -d
+
+echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
