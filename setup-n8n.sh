@@ -91,7 +91,7 @@ fi
 
 # Crear archivo .env de forma segura
 echo "🔧 Generando archivo .env..."
-tee .env > /dev/null <<EOF
+cat <<EOF | sudo tee .env > /dev/null
 DOMAIN=$DOMAIN
 EMAIL=$EMAIL
 TZ=$TZ
