@@ -55,6 +55,42 @@ else
   fi
 fi
 
+echo "🔧 Verificando si Docker Compose CLI plugin está instalado..."
+
+if docker compose version &> /dev/null; then
+  echo "✅ docker compose (plugin) ya está instalado."
+else
+  echo "🛠 Instalando docker-compose plugin..."
+
+  sudo apt-get update -y
+  sudo apt-get install -y docker-compose-plugin
+
+  if docker compose version &> /dev/null; then
+    echo "✅ docker compose (plugin) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar docker compose (plugin). Abortando..."
+    exit 1
+  fi
+fi
+
+echo "🔧 Verificando si docker-compose (clásico) está instalado..."
+
+if command -v docker-compose &> /dev/null; then
+  echo "✅ docker-compose (clásico) está instalado."
+else
+  echo "🛠 Instalando docker-compose (clásico)..."
+
+  sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+
+  if command -v docker-compose &> /dev/null; then
+    echo "✅ docker-compose (clásico) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar docker-compose (clásico). Abortando..."
+    exit 1
+  fi
+fi
+
 echo "📝 Configuraremos tu entorno. Responde lo siguiente:"
 
 # Preguntas al usuario
