@@ -86,7 +86,7 @@ fi
 
 # Crear archivo .env de forma segura
 echo "🔧 Generando archivo .env..."
-cat <<EOF > .env
+tee .env > /dev/null <<EOF
 DOMAIN=$DOMAIN
 EMAIL=$EMAIL
 TZ=$TZ
@@ -102,8 +102,7 @@ echo "✅ Archivo .env generado correctamente."
 # Crear docker-compose.yml base
 echo "📦 Generando archivo docker-compose.yml..."
 
-cat > docker-compose.yml <<EOF
-version: "3.8"
+tee docker-compose.yml > /dev/null <<'EOF'
 
 services:
   nginx-proxy:
@@ -215,11 +214,18 @@ services:
     networks:
       - backend
       - proxy
+  volumes:
+    postgres_data:
+    n8n_data:
+
+  networks:
+    proxy:
+    backend:
 EOF
 
 # Añadir workers dinámicamente
 for i in $(seq 1 "$N8N_WORKERS"); do
-cat >> docker-compose.yml <<EOF
+tee -a docker-compose.yml > /dev/null <<EOF
 
   n8n-worker-$i:
     image: n8nio/n8n:latest
@@ -247,19 +253,7 @@ cat >> docker-compose.yml <<EOF
 EOF
 done
 
-# Volúmenes y redes
-cat >> docker-compose.yml <<EOF
-
-volumes:
-  postgres_data:
-  n8n_data:
-
-networks:
-  proxy:
-  backend:
-EOF
-
-echo "✅ docker-compose.yml generado correctamente."
+echo "✅ docker-compose.yml + workers generado correctamente."
 echo "📦 Iniciando contenedores..."
 
 docker compose up -d
