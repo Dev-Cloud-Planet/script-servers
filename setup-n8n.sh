@@ -104,7 +104,10 @@ EOF"
 
 echo "✅ Archivo .env generado correctamente."
 
-# Crear docker-compose.yml base
+
+
+echo "🔄 Generando archivo docker-compose.yml..."
+
 sudo tee docker-compose.yml > /dev/null <<EOF
 services:
   nginx-proxy:
@@ -226,7 +229,8 @@ networks:
   backend:
 EOF
 
-# Agregar workers dinámicos si N8N_WORKERS > 0
+# Si quieres workers, agrega aquí después (ejemplo con 2 workers):
+N8N_WORKERS=2
 if (( N8N_WORKERS > 0 )); then
   for i in $(seq 1 "$N8N_WORKERS"); do
     sudo tee -a docker-compose.yml > /dev/null <<EOF
