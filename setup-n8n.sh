@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bashMore actions
 
 set -euo pipefail
 
@@ -37,6 +37,8 @@ else
   echo "⚠️ Reinicia tu sesión para a  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
   echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
 ompose esté disponible..."
+
+
 
 if command -v docker-compose &> /dev/null; then
   echo "✅ docker-compose (clásico) está instalado."
@@ -258,4 +260,3 @@ echo "📦 Iniciando contenedores..."
 docker compose up -d
 
 echo "🎉 ¡Todo listo! Accede a tu instancia de n8n en: https://${DOMAIN}"
-
