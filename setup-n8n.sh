@@ -3,14 +3,15 @@
 set -e
 
 echo "🚀 Bienvenido al instalador de n8n con Docker + SSL automático (Let's Encrypt)"
-echo "🌐 Primero, actualizaremos el sistema e instalaremos Docker y Docker Compose..."
 
-# Actualizar sistema e instalar Docker si no está instalado
+echo "🌐 Primero actualizaremos tu sistema para que todo esté al día..."
+sudo apt-get update -y
+sudo apt-get upgrade -y
+
+echo "🔍 Ahora vamos a verificar si Docker está instalado..."
+
 if ! command -v docker &> /dev/null; then
   echo "🛠 Docker no está instalado. Procediendo con la instalación..."
-
-  sudo apt-get update -y
-  sudo apt-get upgrade -y
 
   sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
 
@@ -21,16 +22,25 @@ if ! command -v docker &> /dev/null; then
   sudo apt-get update -y
   sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
-  echo "Agregando usuario actual al grupo docker para evitar usar sudo..."
+  echo "✅ Docker y Docker Compose instalados correctamente."
+
+  echo "👤 Agregando tu usuario al grupo 'docker' para evitar usar sudo con Docker..."
   sudo usermod -aG docker $USER
 
-  echo "Docker y Docker Compose instalados. Es recomendable cerrar sesión y volver a entrar para aplicar permisos."
+  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
+  echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
+
 else
   echo "✅ Docker ya está instalado. Continuando..."
 fi
 
-# Validar Docker Compose instalado
-if ! docker compose version &> /dev/null; then
+echo "🔍 Verificando que Docker Compose esté disponible..."
+
+if command -v docker-compose &> /dev/null; then
+  echo "✅ docker-compose (el clásico) está instalado."
+elif docker compose version &> /dev/null; then
+  echo "✅ docker compose (el nuevo) está disponible."
+else
   echo "❌ Docker Compose no está instalado. Por favor, instala docker-compose o docker compose."
   exit 1
 fi
@@ -228,6 +238,7 @@ EOF
 
 echo "✅ docker-compose.yml generado correctamente."
 echo "🔁 Levantando servicios..."
+
 docker compose up -d
 
 echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
