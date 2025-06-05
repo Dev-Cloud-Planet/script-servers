@@ -297,6 +297,6 @@ fi
 
 echo "✅ docker-compose.yml generado correctamente."
 echo "🔁 Levantando servicios..."
-sudo docker compose up -d
+sudo docker compose -f $(pwd)/docker-compose.yml up -d
 
 echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
