@@ -149,8 +149,8 @@ services:
     image: jwilder/nginx-proxy
     container_name: nginx-proxy
     ports:
-      - \"80:80\"
-      - \"443:443\"
+      - "80:80"
+      - "443:443"
     volumes:
       - /var/run/docker.sock:/tmp/docker.sock:ro
       - ./data/certs:/etc/nginx/certs:ro
@@ -201,10 +201,10 @@ services:
       - REDIS_HOSTS=local:redis:6379
       - TZ=${TZ}
     expose:
-      - \"8081\"
+      - "8081"
     labels:
-      - \"traefik.enable=false\"
-      - \"com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false\"
+      - "traefik.enable=false"
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
     networks:
       - backend
       - proxy
@@ -216,10 +216,10 @@ services:
       - PGADMIN_DEFAULT_EMAIL=${EMAIL}
       - PGADMIN_DEFAULT_PASSWORD=${POSTGRES_PASSWORD}
     expose:
-      - \"80\"
+      - "80"
     labels:
-      - \"traefik.enable=false\"
-      - \"com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false\"
+      - "traefik.enable=false"
+      - "com.github.jrcs.letsencrypt_nginx_proxy_companion.nginx_proxy=false"
     networks:
       - backend
       - proxy
