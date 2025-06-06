@@ -210,4 +210,4 @@ sudo docker compose -f $(pwd)/docker-compose.yml up -d
 
 echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
 echo "AQUI LOS CONTENEDORES"
-sudo    docker ps 
+sudo docker ps 
