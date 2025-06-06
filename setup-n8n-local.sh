@@ -31,19 +31,19 @@ if ! [[ "$N8N_WORKERS" =~ ^[0-5]$ ]]; then
 fi
 
 # Crear .env
-cat > .env <<EOF
+sudo bash -c "cat > .env <<EOF
 TZ=$TZ
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
 N8N_BASIC_AUTH_USER=$N8N_BASIC_AUTH_USER
 N8N_BASIC_AUTH_PASSWORD=$N8N_BASIC_AUTH_PASSWORD
 N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 N8N_WORKERS=$N8N_WORKERS
-EOF
+EOF"
 
 echo "✅ Archivo .env generado."
 
 # Crear docker-compose.yml
-cat > docker-compose.yml <<'EOF'
+sudo bash -c "cat > docker-compose.yml <<EOF
 version: '3.8'
 
 services:
@@ -91,12 +91,18 @@ services:
     networks:
       - backend
 
-EOF
+volumes:
+  postgres_data:
+
+networks:
+  backend:
+  
+EOF"
 
 # Agregar workers si el usuario lo solicitó
 if [[ "$N8N_WORKERS" -gt 0 ]]; then
   for i in $(seq 1 "$N8N_WORKERS"); do
-    cat >> docker-compose.yml <<EOF
+    sudo bash -c "cat >> docker-compose.yml <<EOF
   n8n-worker-$i:
     image: n8nio/n8n:latest
     container_name: n8n-worker-$i
@@ -119,17 +125,9 @@ if [[ "$N8N_WORKERS" -gt 0 ]]; then
     networks:
       - backend
 
-EOF
+EOF"
   done
 fi
-
-cat >> docker-compose.yml <<EOF
-volumes:
-  postgres_data:
-
-networks:
-  backend:
-EOF
 
 echo "✅ docker-compose.yml generado."
 
