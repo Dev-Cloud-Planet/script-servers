@@ -209,3 +209,5 @@ echo "🔁 Levantando servicios..."
 sudo docker compose -f $(pwd)/docker-compose.yml up -d
 
 echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
+echo "AQUI LOS CONTENEDORES"
+sudo    docker ps 
