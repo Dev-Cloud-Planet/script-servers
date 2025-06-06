@@ -2,21 +2,96 @@
 
 set -euo pipefail
 
-echo "🚀 Instalador simplificado de n8n en localhost con PostgreSQL, Redis y Workers"
+# Solicita la contraseña sudo al principio para evitar múltiples prompts
+sudo -v
 
-# Verifica Docker y Docker Compose
-echo "🔍 Verificando Docker..."
-if ! command -v docker &> /dev/null; then
-  echo "❌ Docker no está instalado. Instálalo primero."
-  exit 1
+# Mantiene sudo activo mientras corre el script
+( while true; do sudo -n true; sleep 60; kill -0 "$$" || exit; done ) 2>/dev/null &
+
+echo "🚀 Bienvenido al instalador de n8n con Docker en local"
+echo "🌐 Actualizando tu sistema..."
+
+sudo apt-get update -y && sudo apt-get upgrade -y
+
+echo "🔍 Verificando si Docker está instalado..."
+
+if command -v docker &> /dev/null && docker --version &> /dev/null; then
+  echo "✅ Docker ya está instalado. Saltando instalación..."
+else
+  echo "🛠 Docker no está instalado. Procediendo con la instalación..."
+
+  sudo apt-get install -y apt-transport-https ca-certificates curl software-properties-common
+
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /usr/share/keyrings/docker-archive-keyring.gpg
+
+  echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+
+  sudo apt-get update -y
+  sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+  echo "✅ Docker instalado correctamente."
+
+  echo "👤 Agregando tu usuario al grupo 'docker'..."
+  sudo usermod -aG docker $USER
+
+  echo "⚠️ Para aplicar los permisos, es necesario cerrar sesión y volver a entrar o reiniciar la máquina."
+  echo "👉 Puedes hacerlo ahora o después, pero recuerda que sin esto tendrás que usar sudo para Docker."
 fi
 
-echo "🔍 Verificando Docker Compose..."
-if ! docker compose version &> /dev/null; then
-  echo "❌ Docker Compose plugin no está instalado. Intenta con: sudo apt install docker-compose-plugin"
-  exit 1
+if command -v docker-compose &> /dev/null; then
+  echo "✅ docker-compose (clásico) está instalado."
+elif docker compose version &> /dev/null; then
+  echo "✅ docker compose (nuevo plugin) está disponible."
+else
+  echo "❌ Docker Compose no está instalado. Procediendo a instalarlo..."
+
+  sudo apt-get install -y docker-compose-plugin
+
+  if docker compose version &> /dev/null; then
+    echo "✅ docker compose (plugin) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar Docker Compose. Abortando..."
+    exit 1
+  fi
 fi
 
+echo "🔧 Verificando si Docker Compose CLI plugin está instalado..."
+
+if docker compose version &> /dev/null; then
+  echo "✅ docker compose (plugin) ya está instalado."
+else
+  echo "🛠 Instalando docker-compose plugin..."
+
+  sudo apt-get update -y
+  sudo apt-get install -y docker-compose-plugin
+
+  if docker compose version &> /dev/null; then
+    echo "✅ docker compose (plugin) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar docker compose (plugin). Abortando..."
+    exit 1
+  fi
+fi
+
+echo "🔧 Verificando si docker-compose (clásico) está instalado..."
+
+if command -v docker-compose &> /dev/null; then
+  echo "✅ docker-compose (clásico) está instalado."
+else
+  echo "🛠 Instalando docker-compose (clásico)..."
+
+  sudo curl -L "https://github.com/docker/compose/releases/latest/download/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose
+  sudo chmod +x /usr/local/bin/docker-compose
+
+  if command -v docker-compose &> /dev/null; then
+    echo "✅ docker-compose (clásico) instalado correctamente."
+  else
+    echo "❌ No se pudo instalar docker-compose (clásico). Abortando..."
+    exit 1
+  fi
+fi
+
+echo "Por favor ingrese los datos cuidadosamente"
 # Preguntas básicas
 read -rp "🌍 Zona horaria del sistema (ej: America/Mexico_City): " TZ
 read -rsp "🔐 Contraseña para PostgreSQL: " POSTGRES_PASSWORD; echo
@@ -30,7 +105,8 @@ if ! [[ "$N8N_WORKERS" =~ ^[0-5]$ ]]; then
   exit 1
 fi
 
-# Crear .env
+# Crear archivo .env de forma segura
+echo "🔧 Generando archivo .env..."
 sudo bash -c "cat > .env <<EOF
 TZ=$TZ
 POSTGRES_PASSWORD=$POSTGRES_PASSWORD
@@ -40,9 +116,10 @@ N8N_ENCRYPTION_KEY=$N8N_ENCRYPTION_KEY
 N8N_WORKERS=$N8N_WORKERS
 EOF"
 
-echo "✅ Archivo .env generado."
+echo "✅ Archivo .env generado correctamente."
 
-# Crear docker-compose.yml
+# Crear docker-compose.yml base
+echo "📦 Generando archivo docker-compose.yml..."
 sudo bash -c "cat > docker-compose.yml <<EOF
 version: '3.8'
 
@@ -96,7 +173,7 @@ volumes:
 
 networks:
   backend:
-  
+
 EOF"
 
 # Agregar workers si el usuario lo solicitó
@@ -129,6 +206,8 @@ EOF"
   done
 fi
 
-echo "✅ docker-compose.yml generado."
+echo "✅ docker-compose.yml generado correctamente."
+echo "🔁 Levantando servicios..."
+sudo docker compose -f $(pwd)/docker-compose.yml up -d
 
-echo "🎉 Instalación lista. Ejecuta con: docker compose up -d"
+echo "🎉 Todo listo. Accede a tu instancia en: https://${DOMAIN}"
