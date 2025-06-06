@@ -121,8 +121,6 @@ echo "✅ Archivo .env generado correctamente."
 # Crear docker-compose.yml base
 echo "📦 Generando archivo docker-compose.yml..."
 sudo bash -c "cat > docker-compose.yml <<EOF
-version: '3.8'
-
 services:
   postgres:
     image: postgres:15
