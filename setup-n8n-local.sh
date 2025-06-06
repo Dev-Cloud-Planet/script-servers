@@ -98,11 +98,26 @@ read -rsp "🔐 Contraseña para PostgreSQL: " POSTGRES_PASSWORD; echo
 read -rp "👤 Usuario para acceso a n8n: " N8N_BASIC_AUTH_USER
 read -rsp "🔑 Contraseña para n8n: " N8N_BASIC_AUTH_PASSWORD; echo
 read -rsp "🧪 Clave secreta para cifrado en n8n: " N8N_ENCRYPTION_KEY; echo
-read -rp "🔁 ¿Cuántos workers deseas lanzar? (0-5): " N8N_WORKERS
+read -rp "🔁 ¿Quieres añadir workers para n8n? (s/n): " add_workers
 
-if ! [[ "$N8N_WORKERS" =~ ^[0-5]$ ]]; then
-  echo "❌ Número de workers inválido (elige entre 0 y 5)"
-  exit 1
+if [[ "$add_workers" =~ ^[sS]$ ]]; then
+  read -rp "🧪 ¿Cuántos workers quieres usar? (1-5): " N8N_WORKERS
+  if ! [[ "$N8N_WORKERS" =~ ^[1-5]$ ]]; then
+    echo "❌ Número inválido de workers. Debes elegir entre 1 y 5."
+    exit 1
+  fi
+else
+  N8N_WORKERS=0
+fi
+
+# Verificar permisos antes de crear .env
+if [ -f .env ]; then
+  echo "⚠️ El archivo .env ya existe. ¿Deseas sobrescribirlo? (s/n)"
+  read -r confirm
+  if [[ "$confirm" != "s" ]]; then
+    echo "❌ Operación cancelada por el usuario."
+    exit 1
+  fi
 fi
 
 # Crear archivo .env de forma segura
@@ -175,9 +190,10 @@ networks:
 EOF"
 
 # Agregar workers si el usuario lo solicitó
-if [[ "$N8N_WORKERS" -gt 0 ]]; then
+if (( N8N_WORKERS > 0 )); then
   for i in $(seq 1 "$N8N_WORKERS"); do
     sudo bash -c "cat >> docker-compose.yml <<EOF
+
   n8n-worker-$i:
     image: n8nio/n8n:latest
     container_name: n8n-worker-$i
@@ -193,13 +209,14 @@ if [[ "$N8N_WORKERS" -gt 0 ]]; then
       - QUEUE_REDIS_HOST=redis
       - EXECUTIONS_MODE=queue
       - N8N_ENCRYPTION_KEY=${N8N_ENCRYPTION_KEY}
-      - GENERIC_TIMEZONE=${TZ}
-    depends_on:
-      - postgres
-      - redis
+      - TZ=${TZ}
+    deploy:
+      resources:
+        limits:
+          cpus: '0.5'
+          memory: 512M
     networks:
       - backend
-
 EOF"
   done
 fi
